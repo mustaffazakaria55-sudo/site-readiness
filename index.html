@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f4c5c">
+<title>Room Readiness Checklist (Cx)</title>
+<style>
+:root{
+  --ink:#1b2a33; --bg:#eef6f7; --card:#fff; --muted:#5d7079;
+  --teal:#0f4c5c; --ok:#1f9d6b; --pend:#f2a413; --bad:#e4572e; --na:#7a8794; --wa:#25d366;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+header{background:linear-gradient(135deg,#0f4c5c,#5f0f40 120%);color:#fff;padding:28px 18px 56px}
+header h1{margin:0 0 4px;font-size:1.5rem}
+header p{margin:0;opacity:.85;font-size:.95rem}
+main{max-width:640px;margin:-34px auto 40px;padding:0 14px}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(15,76,92,.12)}
+label.f{display:block;font-weight:700;font-size:.9rem;margin-bottom:10px;color:var(--teal)}
+input[type=text],input[type=date],textarea{
+  display:block;width:100%;margin-top:4px;padding:12px;font:inherit;font-weight:400;color:var(--ink);
+  border:2px solid #cfe0e3;border-radius:10px;background:#fbfeff}
+textarea{min-height:64px;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,76,92,.18)}
+.item{border-left:8px solid var(--c)}
+.item h2{margin:0 0 2px;font-size:1.02rem}
+.item small{color:var(--muted)}
+.chips{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0 10px}
+@media(min-width:480px){.chips{grid-template-columns:repeat(4,1fr)}}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer;margin:0}
+.chips span{display:block;text-align:center;padding:10px 4px;border-radius:999px;border:2px solid var(--k);color:var(--k);font-weight:700;font-size:.88rem;transition:.15s}
+.chips input:checked+span{background:var(--k);color:#fff}
+.chips input:focus-visible+span{outline:3px solid var(--ink);outline-offset:2px}
+.chips .ok{--k:var(--ok)}.chips .pend{--k:var(--pend)}.chips .bad{--k:var(--bad)}.chips .na{--k:var(--na)}
+.chips .pend{color:#a56d00}.chips input:checked+.pend{color:#fff}
+.progress{font-weight:700;text-align:center;margin:4px 0 14px;color:var(--teal)}
+button{width:100%;padding:16px;border:0;border-radius:14px;background:var(--wa);color:#fff;font:700 1.1rem inherit;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;box-shadow:0 6px 16px rgba(37,211,102,.4)}
+button:active{transform:scale(.98)}
+button svg{width:24px;height:24px;fill:#fff}
+.err{color:var(--bad);font-weight:700;font-size:.88rem;margin:8px 0 0;min-height:1.2em;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>Room readiness checklist</h1>
+  <p>For Cx purpose</p>
+</header>
+
+<main>
+<form id="f" novalidate>
+  <section class="card">
+    <label class="f">Room name
+      <input type="text" id="room" placeholder="e.g. Data Hall 2" autocomplete="off">
+    </label>
+    <label class="f">Equipment ID
+      <input type="text" id="eqid" placeholder="e.g. UPS-R1-01" autocomplete="off">
+    </label>
+    <label class="f" style="margin-bottom:0">Date
+      <input type="date" id="date">
+    </label>
+  </section>
+
+  <div id="items"></div>
+
+  <div class="progress" id="prog"></div>
+  <button type="submit" id="send">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.3-.5.1-1.2.1-1.9-.1-.4-.1-1-.3-1.7-.6-3-1.3-4.9-4.3-5-4.5-.1-.2-1.2-1.6-1.2-3s.8-2.1 1-2.4c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.8 2c.1.2.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.3-.1.6.2.3.7 1.2 1.5 1.9 1 .9 1.9 1.2 2.2 1.3.3.1.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.8-.1 1.5z"/></svg>
+    Send to WhatsApp
+  </button>
+  <p class="err" id="err" role="alert"></p>
+</form>
+</main>
+
+<script>
+// Emoji are written as Unicode code points so they never break, whatever the file encoding
+const E=(...c)=>String.fromCodePoint(...c);
+const ITEMS=[
+  {n:"Equipment Installation",ic:E(0x1F527),c:"#0f4c5c"},
+  {n:"Plinth condition",ic:E(0x1F9F1),c:"#e4572e"},
+  {n:"Busduct",ic:E(0x26A1),c:"#f2a413"},
+  {n:"Containment/ladder",ic:E(0x1FA9C),c:"#7b2d8e"},
+  {n:"Cable laying",ic:E(0x1F50C),c:"#1f9d6b"},
+  {n:"Termination",opt:1,ic:E(0x1F529),c:"#2b6cb0"},
+  {n:"Fire seal",opt:1,ic:E(0x1F525),c:"#c2185b"},
+  {n:"Equipment arrangement",sub:"Position, align with drawing?",ic:E(0x1F4D0),c:"#00897b"},
+  {n:"Others",ic:E(0x1F4CC),c:"#5d6d7e"}
+];
+const STATUS={
+  ok:[E(0x2705),"Ready"],
+  pend:[E(0x23F3),"Pending"],
+  bad:[E(0x274C),"Issue"],
+  na:[E(0x2796),"N/A"]
+};
+const KEY=n=>E(48+n,0xFE0F,0x20E3); // 1️⃣ 2️⃣ 3️⃣ ...
+const LINE="\u2501".repeat(15);
+const $=id=>document.getElementById(id);
+
+// Build item cards
+$("items").innerHTML=ITEMS.map((it,i)=>`
+  <section class="card item" style="--c:${it.c}">
+    <h2>${it.n}${it.opt?" <small>(optional)</small>":""}</h2>
+    ${it.sub?`<small>${it.sub}</small>`:""}
+    <div class="chips" role="radiogroup" aria-label="${it.n} status">
+      ${Object.entries(STATUS).map(([k,v])=>`
+        <label><input type="radio" name="s${i}" value="${k}"><span class="${k}">${v[0]} ${v[1]}</span></label>`).join("")}
+    </div>
+    <textarea id="r${i}" placeholder="Remarks (optional)" aria-label="${it.n} remarks"></textarea>
+  </section>`).join("");
+
+// Default date = today (local)
+const t=new Date();
+$("date").value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+
+function updateProgress(){
+  const done=ITEMS.filter((_,i)=>document.querySelector(`input[name=s${i}]:checked`)).length;
+  $("prog").textContent=`${done} of ${ITEMS.length} items checked`;
+}
+$("f").addEventListener("change",updateProgress);
+updateProgress();
+
+function fmtDate(v){
+  if(!v) return "-";
+  const [y,m,d]=v.split("-").map(Number);
+  return new Date(y,m-1,d).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+}
+
+$("f").addEventListener("submit",e=>{
+  e.preventDefault();
+  const room=$("room").value.trim(), eq=$("eqid").value.trim();
+  if(!room||!eq){
+    $("err").textContent="Please fill in Room name and Equipment ID.";
+    (!room?$("room"):$("eqid")).focus();
+    return;
+  }
+  $("err").textContent="";
+
+  let ready=0, issues=0, pending=0;
+  const lines=ITEMS.map((it,i)=>{
+    const sel=document.querySelector(`input[name=s${i}]:checked`);
+    const k=sel?sel.value:null;
+    if(k==="ok")ready++; if(k==="bad")issues++; if(k==="pend"||!k)pending++;
+    const icon=k?STATUS[k][0]:E(0x2B1C), label=k?STATUS[k][1]:"Not checked";
+    const rem=$("r"+i).value.trim();
+    let s=`${KEY(i+1)} ${it.ic} *${it.n}*${it.opt?" _(optional)_":""}\n${icon} ${label}`;
+    if(rem) s+=`\n${E(0x1F4DD)} ${rem.replace(/\n+/g," / ")}`;
+    return s;
+  });
+
+  const msg=
+`${E(0x1F4CB)} *ROOM READINESS CHECKLIST (Cx)*
+${LINE}
+${E(0x1F3E2)} *Room:* ${room}
+${E(0x1F3F7,0xFE0F)} *Equipment ID:* ${eq}
+${E(0x1F4C5)} *Date:* ${fmtDate($("date").value)}
+${LINE}
+
+${lines.join("\n\n")}
+
+${LINE}
+${E(0x1F4CA)} *Summary*
+${STATUS.ok[0]} Ready: ${ready}
+${STATUS.pend[0]} Pending: ${pending}
+${STATUS.bad[0]} Issue: ${issues}`;
+
+  window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank","noopener");
+});
+</script>
+</body>
+</html>
