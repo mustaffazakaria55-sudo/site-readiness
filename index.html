@@ -19,11 +19,14 @@ header p{margin:0;opacity:.85;font-size:.95rem}
 main{max-width:640px;margin:-34px auto 40px;padding:0 14px}
 .card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(15,76,92,.12)}
 label.f{display:block;font-weight:700;font-size:.9rem;margin-bottom:10px;color:var(--teal)}
-input[type=text],input[type=date],textarea{
+input[type=text],input[type=date],select,textarea{
   display:block;width:100%;margin-top:4px;padding:12px;font:inherit;font-weight:400;color:var(--ink);
   border:2px solid #cfe0e3;border-radius:10px;background:#fbfeff}
 textarea{min-height:64px;resize:vertical}
-input:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,76,92,.18)}
+select{appearance:auto;min-height:48px}
+select:disabled{background:#eef3f4;color:var(--muted)}
+.hide{display:none}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,76,92,.18)}
 .item{border-left:8px solid var(--c)}
 .item h2{margin:0 0 2px;font-size:1.02rem}
 .item small{color:var(--muted)}
@@ -53,8 +56,12 @@ button svg{width:24px;height:24px;fill:#fff}
 <main>
 <form id="f" novalidate>
   <section class="card">
-    <label class="f">Room name
-      <input type="text" id="room" placeholder="e.g. Data Hall 2" autocomplete="off">
+    <label class="f">Floor
+      <select id="floor"><option value="">Select floor</option></select>
+    </label>
+    <label class="f">Room
+      <select id="room" disabled><option value="">Select floor first</option></select>
+      <input type="text" id="roomOther" class="hide" placeholder="Type room name" autocomplete="off">
     </label>
     <label class="f">Equipment ID
       <input type="text" id="eqid" placeholder="e.g. UPS-R1-01" autocomplete="off">
@@ -95,6 +102,18 @@ const STATUS={
   bad:[E(0x274C),"Issue"],
   na:[E(0x2796),"N/A"]
 };
+
+// Floor -> rooms (from EQIX KL2 equipment location list)
+const FLOORS={
+  BF:["Basement",["NEE B1029","Pump Room B1010","Make Up Water Tank 1 B1020","Make Up Water Tank 2 B1021","Make Up Water Tank 3 B1022","Sprinkler Tank 1 B1023","Sprinkler Tank 2 B1024","Hose Reel Tank B1026","Rainwater Harvesting Tank B1027","Flushing Water Tank B1028","Domestic Water Tank 1 B10210","Domestic Water Tank 2 B10211"]],
+  GF:["Ground Floor (GF)",["Security Lobby 0020","Security Room 0030","Temporary Secured Storage 0040","Shipping & Receiving 0060","Sequested Storage 0070","Shipping & Receiving Office 0090","Shipping & Receiving 00110","Security Inventory Storage 0130","Fire Command Center 0140","Waste Room 0150","Corridor 0170","Clear Wide Corridor 0174","Clear Wide Corridor 0175","Customer Lounge 1020","NER 2 0220","NER 1 0221","FER 2 0230","FER 1 0231","eGEN 0240","eGEN 0241","Spare Room 0250","Spare Room 0251","R2 Block / eWALL 0270","R1 Block / eWALL 0271","Cool Spine 0280","Cool Spine 0281","Battery 0290","Battery 0291","TX 0300","TX 0301","Preaction 0310","Preaction 0311","Store 0320","Store 0321","Fuel Polishing Room 0330","Fuel Pump Room 1 0340","Fuel Pump Room 2 0341","Guard House 1 0350","Guard House 2 0351","FOH Elec Room 0409","ST-06 (IC-12)"]],
+  L1:["Level 1 (L1)",["Operations Workshop & Storage 1060","Customer Lounge 1020","Facility Operation Office 1080","Wide Corridor 1083","Wide Corridor 1170","Clear Wide Corridor 1172","Clear Wide Corridor 1173","Fire Lift Lobby 1192","FOH Elec Room 116","NER 2 1220","NER 1 1221","MDF 2 1230","MDF 1 1231","eGEN 1240","eGEN 1241","STS 1250","STS 1251","eWALL E 1270","eWALL F 1271","Cool Spine 1280","Cool Spine 1281","Battery 1290","Battery 1291","TX 1300","TX 1301","Preaction 1310","Preaction 1311","Store 1320","Store 1321","FOH Elec Room 1409","3M Wide Corridor"]],
+  L2:["Level 2 (L2)",["Tech Workroom 2020","Ablution Area 2040","Ablution Area 2041","Mother's Room 2050","Corridor 2170","Clear Wide Corridor 2172","Clear Wide Corridor 2173","Fire Lift Lobby 2192","NIR 2 2220","NIR 1 2221","MDF 2 2230","MDF 1 2231","eGEN 2240","eGEN 2241","STS 2250","STS 2251","eWALL C 2270","eWALL D 2271","Cool Spine 2280","Cool Spine 2281","Battery 2290","Battery 2291","Spare Room 2290","Spare Room 2291","TX 2300","TX 2301","Preaction 2310","Preaction 2311","Battery 2320","Battery 2321","FOH Elec Room 2409","3M Wide Corridor"]],
+  L3:["Level 3 (L3)",["Load Bank Panel Room 3020","Clear Wide Corridor 3172","Clear Wide Corridor 3173","Fire Lift Lobby 3192","NER 2 3220","NER 1 3221","MDF 2 3230","MDF 1 3231","eGEN 3240","eGEN 3241","STS 3250","STS 3251","eWALL A 3270","eWALL B 3271","Cool Spine 3280","Cool Spine 3281","Storage 3290","Storage 3291","TX 3300","TX 3301","Preaction 3310","Preaction 3311","Storage 3321","FOH Elec Room 3409","3M Wide Corridor"]],
+  RF:["Roof (RF)",["Terrace RF010","Chiller Plant Room RF020","Terrace RF030","Roof SRF180","Stairs Lobby RF190","Goods Lift Lobby RF191","Fire Lift Lobby RF192","Fire Lift Lobby RF193","Fire Lift Lobby RF194","Roof Gantry R2010","NER 2 RF220","NER 1 / FER 1 RF221","meGEN RF240","meGEN RF241","STS RF250","M2 meWALL RF270","M1 meWALL RF271","TX RF300","TX RF301","Good Lift RF416.2"]],
+  EXT:["External (EXT)",["Guard House 1 151","Guard House 2 382","HSD Yard","HSD Tank","Fuel Pump Room (Ext)","East - Outside Genset Area","West","East"]],
+  TNB:["TNB",["TNB Consumer Room 1","TNB Consumer Room 2","TNB Substation"]]
+};
 const KEY=n=>E(48+n,0xFE0F,0x20E3); // 1️⃣ 2️⃣ 3️⃣ ...
 const LINE="\u2501".repeat(15);
 const $=id=>document.getElementById(id);
@@ -115,6 +134,29 @@ $("items").innerHTML=ITEMS.map((it,i)=>`
 const t=new Date();
 $("date").value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
 
+
+// Floor / room dropdowns
+const OTHER="__other__";
+$("floor").innerHTML+=Object.entries(FLOORS).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join("");
+$("floor").addEventListener("change",()=>{
+  const f=FLOORS[$("floor").value], r=$("room");
+  $("roomOther").classList.add("hide"); $("roomOther").value="";
+  if(!f){r.innerHTML='<option value="">Select floor first</option>';r.disabled=true;return;}
+  r.innerHTML='<option value="">Select room</option>'+f[1].map(n=>`<option>${n}</option>`).join("")+`<option value="${OTHER}">Other (type manually)</option>`;
+  r.disabled=false;
+});
+$("room").addEventListener("change",()=>{
+  const o=$("room").value===OTHER;
+  $("roomOther").classList.toggle("hide",!o);
+  if(o)$("roomOther").focus();
+});
+function getRoom(){
+  const f=$("floor").value; if(!f) return "";
+  const r=$("room").value;
+  const name=r===OTHER?$("roomOther").value.trim():r;
+  return name?`${name} (${FLOORS[f][0]})`:"";
+}
+
 function updateProgress(){
   const done=ITEMS.filter((_,i)=>document.querySelector(`input[name=s${i}]:checked`)).length;
   $("prog").textContent=`${done} of ${ITEMS.length} items checked`;
@@ -130,10 +172,10 @@ function fmtDate(v){
 
 $("f").addEventListener("submit",e=>{
   e.preventDefault();
-  const room=$("room").value.trim(), eq=$("eqid").value.trim();
+  const room=getRoom(), eq=$("eqid").value.trim();
   if(!room||!eq){
-    $("err").textContent="Please fill in Room name and Equipment ID.";
-    (!room?$("room"):$("eqid")).focus();
+    $("err").textContent="Please select Floor and Room, and fill in Equipment ID.";
+    (!$("floor").value?$("floor"):!room?($("room").value===OTHER?$("roomOther"):$("room")):$("eqid")).focus();
     return;
   }
   $("err").textContent="";
