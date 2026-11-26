@@ -61,6 +61,24 @@ footer.copy{text-align:center;color:var(--muted);font-size:.8rem;padding:0 14px 
 .tm-box h2{margin:0 0 10px;font-size:1.2rem;color:var(--teal)}
 .tm-box p{margin:0 0 10px;font-size:.95rem}
 .tm-box button{width:100%;margin-top:6px;padding:14px;border:0;border-radius:10px;background:var(--teal);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+
+/* Energize marquee */
+.mq{position:sticky;top:0;z-index:50;display:flex;align-items:stretch;background:#0b2f3a;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.25);overflow:hidden}
+.mq-label{flex:none;display:flex;align-items:center;gap:6px;padding:0 12px;background:#f2a413;color:#1b2a33;font-weight:800;font-size:.78rem;letter-spacing:.04em;text-transform:uppercase;z-index:2}
+.mq-view{flex:1;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
+.mq-track{display:inline-flex;white-space:nowrap;will-change:transform;animation:mqmove var(--dur,120s) linear infinite}
+.mq:hover .mq-track,.mq:focus-within .mq-track,.mq.paused .mq-track{animation-play-state:paused}
+@keyframes mqmove{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.mq-item{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;font-size:.88rem;border-right:1px solid rgba(255,255,255,.18)}
+.mq-item b{font-weight:800;letter-spacing:.01em}
+.mq-item .fl{background:rgba(255,255,255,.16);border-radius:999px;padding:1px 8px;font-size:.72rem;font-weight:700}
+.mq-item .dt{color:#ffd166;font-weight:800}
+.mq-item .dl{font-size:.74rem;opacity:.8}
+.mq-item.soon .dt{color:#ff8a65}
+.mq-item.done .dt{color:#7be0b1}
+.mq-btn{flex:none;width:44px;border:0;border-radius:0;background:rgba(255,255,255,.1);color:#fff;font-size:1rem;box-shadow:none;padding:0;display:flex;align-items:center;justify-content:center;z-index:2}
+.mq-btn:active{transform:none;background:rgba(255,255,255,.2)}
+@media(prefers-reduced-motion:reduce){.mq-track{animation:none}.mq-view{overflow-x:auto}}
 </style>
 </head>
 <body>
@@ -72,8 +90,13 @@ footer.copy{text-align:center;color:var(--muted);font-size:.8rem;padding:0 14px 
     <button type="button" id="tmAgree">I Understand &amp; Agree</button>
   </div>
 </div>
+<div class="mq" id="mq" role="region" aria-label="Energize schedule">
+  <div class="mq-label"><span aria-hidden="true">&#9889;</span> Energize</div>
+  <div class="mq-view"><div class="mq-track" id="mqTrack"></div></div>
+  <button type="button" class="mq-btn" id="mqPause" aria-label="Pause scrolling">&#10074;&#10074;</button>
+</div>
 <header>
-  <h1>KL02 Equinix Room readiness checklist</h1>
+  <h1>Room readiness checklist</h1>
   <p>For Cx purpose</p>
 </header>
 
@@ -266,6 +289,50 @@ ${STATUS.bad[0]} Issue: ${issues}`;
   document.getElementById("tmAgree").addEventListener("click",function(){
     m.classList.add("hide");
     document.body.style.overflow="";
+  });
+})();
+</script>
+<script>
+// Energize schedule (source: SHIMIZU - ENERGIZE PLANNING, MLTX / RMU / MSB / BTU). Format: [equipment, floor, dd.m.yy]
+(function(){
+  var RAW=[
+["1RMU_R1","LG","10.12.26"],["1BTU_R1","LG","10.12.26"],["1RMU_F","L1","10.12.26"],["1BTU_F","L1","10.12.26"],
+["1RMU_R2","LG","11.12.26"],["1BTU_R2","LG","11.12.26"],["1BTU_C","L2","11.12.26"],["1RMU_C","L2","11.12.26"],
+["1MLTX_R1","LG","12.12.26"],["1MSB_R1","LG","12.12.26"],
+["1MLTX_R2","LG","13.12.26"],["1MSB_R2","LG","13.12.26"],
+["1RMU_D","L2","19.12.26"],["1RMU_E","L1","19.12.26"],["1BTU_E","L1","19.12.26"],["1BTU_D","L2","19.12.26"],
+["1MLTX_F","L1","20.12.26"],["1MSB_F","L1","20.12.26"],
+["1MLTX_C","L2","26.12.26"],["1MSB_C","L2","26.12.26"],
+["1MLTX_E","L1","4.1.27"],["1MSB_E","L1","4.1.27"],
+["1MLTX_D","L2","7.1.27"],["1MSB_D","L2","7.1.27"],
+["1RMU_A","L3","15.1.27"],["1BTU_A","L3","15.1.27"],["1MLTX_M2","RT","15.1.27"],["1RMU_M2","RT","15.1.27"],["1MSB_M2","RT","15.1.27"],["1BTU_M2","RT","15.1.27"],["1MLTX_M1","RT","15.1.27"],["1RMU_M1","RT","15.1.27"],["1MSB_M1","RT","15.1.27"],["1BTU_M1","RT","15.1.27"],
+["1RMU_B","L3","16.1.27"],["1BTU_B","L3","16.1.27"],
+["1MLTX_A","L3","6.2.27"],["1MSB_A","L3","6.2.27"],
+["1MLTX_B","L3","7.2.27"],["1MSB_B","L3","7.2.27"]
+  ];
+  var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var now=new Date(); now=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  var rows=RAW.map(function(r,i){
+    var p=r[2].split(".").map(Number), d=new Date(2000+p[2],p[1]-1,p[0]);
+    return {id:r[0],fl:r[1],d:d,i:i,txt:(p[0]<10?"0":"")+p[0]+" "+MON[p[1]-1]+" "+(2000+p[2])};
+  }).sort(function(a,b){return a.d-b.d||a.i-b.i;});
+  function item(r){
+    var diff=Math.round((r.d-now)/864e5), cls="", note;
+    if(diff<0){cls="done";note="done";}
+    else if(diff===0){cls="soon";note="TODAY";}
+    else{note=diff+"d";if(diff<=7)cls="soon";}
+    return '<span class="mq-item '+cls+'"><b>'+r.id+'</b><span class="fl">'+r.fl+'</span><span class="dt">'+r.txt+'</span><span class="dl">('+note+')</span></span>';
+  }
+  var html=rows.map(item).join("");
+  var tr=document.getElementById("mqTrack");
+  tr.innerHTML=html+html; // duplicated for a seamless loop
+  tr.setAttribute("aria-hidden","false");
+  tr.style.setProperty("--dur",Math.max(60,rows.length*3.2)+"s");
+  var mq=document.getElementById("mq"), b=document.getElementById("mqPause");
+  b.addEventListener("click",function(){
+    var p=mq.classList.toggle("paused");
+    b.innerHTML=p?"&#9654;":"&#10074;&#10074;";
+    b.setAttribute("aria-label",p?"Resume scrolling":"Pause scrolling");
   });
 })();
 </script>
